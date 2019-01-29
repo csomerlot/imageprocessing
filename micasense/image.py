@@ -45,6 +45,7 @@ class Image(object):
             raise IOError("Provided path is not a file: {}".format(image_path))
         self.path = image_path
         self.meta = metadata.Metadata(self.path)
+        self.meta.validate()
 
         if not self.meta.supports_radiometric_calibration():
             raise ValueError('Library requires images taken with camera firmware v2.1.0 or later. ' +
@@ -53,7 +54,8 @@ class Image(object):
         self.utc_time = self.meta.utc_time()
         self.latitude, self.longitude, self.altitude = self.meta.position()
         self.dls_present = self.meta.dls_present()
-        self.dls_yaw, self.dls_pitch, self.dls_roll = self.meta.dls_pose()
+        if self.dls_present:
+            self.dls_yaw, self.dls_pitch, self.dls_roll = self.meta.dls_pose()
         self.dls_irradiance = self.meta.dls_irradiance()
         self.capture_id = self.meta.capture_id()
         self.flight_id = self.meta.flight_id()

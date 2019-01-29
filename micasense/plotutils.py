@@ -39,7 +39,7 @@ def plotwithcolorbar(img, title=None, figsize=None, vmin=None, vmax=None):
     plt.show()
     return fig, axis
 
-def subplotwithcolorbar(rows, cols, images, titles=None, figsize=None):
+def subplotwithcolorbar(rows, cols, images, titles=None, figsize=None, fname=None):
     ''' Plot a set of images in subplots '''
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
     for i in range(cols*rows):
@@ -55,7 +55,11 @@ def subplotwithcolorbar(rows, cols, images, titles=None, figsize=None):
         else:
             axes[row, column].axis('off')
     plt.tight_layout()
-    plt.show()
+    if fname:
+        plt.savefig(fname)
+        plt.cla()
+    else:
+        plt.show()
     return fig, axes
 
 def plot_overlay_withcolorbar(imgbase, imgcolor, title=None, figsize=None, vmin=None, vmax=None, overlay_alpha=1.0):
@@ -71,7 +75,7 @@ def plot_overlay_withcolorbar(imgbase, imgcolor, title=None, figsize=None, vmin=
     plt.show()
     return fig, axis
 
-def subplot(rows, cols, images, titles=None, figsize=None):
+def subplot(rows, cols, images, titles=None, figsize=None, fname=None):
     ''' Plot a set of images in subplots '''
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
     for i in range(cols*rows):
@@ -84,7 +88,11 @@ def subplot(rows, cols, images, titles=None, figsize=None):
         else:
             axes[row, column].axis('off')
     plt.tight_layout()
-    plt.show()
+    if fname:
+        plt.savefig(fname)
+        plt.cla()
+    else:
+        plt.show()
     return fig, axes
 
 def colormap(cmap):

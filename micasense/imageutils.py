@@ -111,7 +111,7 @@ def align_capture(capture, ref_index=4, warp_mode=cv2.MOTION_AFFINE, max_iterati
     warp_matrices = [None]*len(alignment_pairs)
     
     #required to work across linux/mac/windows, see https://stackoverflow.com/questions/47852237
-    multiprocessing.set_start_method('spawn') 
+    # multiprocessing.set_start_method('spawn') 
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
     for i,mat in enumerate(pool.imap_unordered(align, alignment_pairs)):
         warp_matrices[mat['match_index']] = mat['warp_matrix']

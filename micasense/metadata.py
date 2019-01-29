@@ -28,6 +28,7 @@ from datetime import datetime, timedelta
 import pytz
 import os
 import math
+import warnings
 
 class Metadata(object):
     ''' Container for Micasense image metadata'''
@@ -221,3 +222,11 @@ class Metadata(object):
             focal_length_px = float(self.get_item('XMP:PerspectiveFocalLength'))
             focal_length_mm = focal_length_px / self.focal_plane_resolution_px_per_mm()[0]
         return focal_length_mm
+    
+    def validate(self, verbose=False):
+        for k in sorted(self.get_all().keys()):
+            if not self.get_item(k):
+                if k not in ('EXIF:GPSAltitudeRef', 'EXIF:SubfileType', 'XMP:RigCameraIndex', 'XMP:SensorId', 'XMP:TriggerMethod') or verbose:
+                    warnings.warn(k + " missing")
+                
+                

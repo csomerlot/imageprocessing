@@ -90,7 +90,7 @@ class Capture(object):
         images = [image.Image(fle) for fle in file_list]
         return cls(images)
 
-    def __plot(self, imgs, num_cols=3, plot_type=None, colorbar=True, figsize=(14, 14)):
+    def __plot(self, imgs, num_cols=3, plot_type=None, colorbar=True, figsize=(14, 14), fname=None):
         ''' plot the radiance images for the capture '''
         if plot_type == None:
             plot_type = ''
@@ -102,9 +102,9 @@ class Capture(object):
             ]
         num_rows = int(math.ceil(float(len(self.images))/float(num_cols)))
         if colorbar:
-            return plotutils.subplotwithcolorbar(num_rows, num_cols, imgs, titles, figsize)
+            return plotutils.subplotwithcolorbar(num_rows, num_cols, imgs, titles, figsize, fname)
         else:
-            return plotutils.subplot(num_rows, num_cols, imgs, titles, figsize)
+            return plotutils.subplot(num_rows, num_cols, imgs, titles, figsize, fname)
 
     def __lt__(self, other):
         return self.utc_time() < other.utc_time()
@@ -156,10 +156,10 @@ class Capture(object):
             percent_diffuse = 1.0/dir_dif_ratio
             #percent_diffuse = 5e4/(img.center_wavelength**2)
             sensor_irradiance = img.dls_irradiance / self.fresnel_correction
-            # find direct irradiance in the plane normal to the sun
-            untilted_direct_irr = sensor_irradiance / (percent_diffuse + np.cos(self.sun_sensor_angle))
+            # find direct irrdiance in the plane normal to the sun
+            untiltied_direct_irr = sensor_irradiance / (percent_diffuse + np.cos(self.sun_sensor_angle))
             # compute irradiance on the ground using the solar altitude angle
-            ground_irr = untilted_direct_irr * (percent_diffuse + np.sin(self.solar_elevation))
+            ground_irr = untiltied_direct_irr * (percent_diffuse + np.cos (self.solar_elevation))
             ground_irradiances.append(ground_irr)
         return ground_irradiances
 
@@ -190,14 +190,14 @@ class Capture(object):
         self.__plot(
             [img.undistorted(img.radiance()) for img in self.images],
             figsize=(12, 6),
-            plot_type='Undistored Radiance')
+            plot_type='Undistorted Radiance')
     
     def plot_undistorted_reflectance(self, irradiance_list):
         '''Compute (if necessary) and plot reflectances given a list of irrdiances'''
         self.__plot(
             self.reflectance(irradiance_list),
             figsize=(12, 6),
-            plot_type='Undistored Reflectance')
+            plot_type='Undistorted Reflectance')
 
     def compute_reflectance(self, irradiance_list):
         '''Compute image reflectance from irradiance list, but don't return'''
@@ -264,7 +264,7 @@ class Capture(object):
            self.detected_panel_count = len(self.panelCorners) 
         return self.detected_panel_count               
 
-    def plot_panels(self):
+    def plot_panels(self, fname=None):
         if self.panels is None:
             if self.detect_panels() != len(self.images):
                 raise IOError("Panels not detected in all images")
@@ -273,5 +273,6 @@ class Capture(object):
             plot_type='Panels',
             num_cols=2,
             figsize=(14, 14),
-            colorbar=False
+            colorbar=False,
+            fname=fname
         )
