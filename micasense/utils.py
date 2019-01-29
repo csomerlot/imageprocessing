@@ -123,7 +123,8 @@ def correct_lens_distortion(meta, image):
     cY = pp[1] * FocalPlaneYResolution
     #k = distortionParameters[0:3] # seperate out k -parameters
     #p = distortionParameters[3::] # separate out p - parameters
-    fx = fy = float(meta.get_item('XMP:PerspectiveFocalLength'))
+    #fx = fy = float(meta.get_item('XMP:PerspectiveFocalLength'))
+    fx = fy = focal_length_mm(meta) * FocalPlaneXResolution
     # apply perspective distortion
 
     h, w = image.shape
@@ -151,3 +152,13 @@ def correct_lens_distortion(meta, image):
     undistortedImage = cv2.remap(image, map1, map2, cv2.INTER_LINEAR)
     return undistortedImage
 
+def focal_length_mm(meta):
+        units = meta.get_item('XMP:PerspectiveFocalLengthUnits')
+        focal_length_mm = 0.0
+        if units == 'mm':
+            focal_length_mm = float(meta.get_item('XMP:PerspectiveFocalLength'))
+        else:
+            focal_length_px = float(meta.get_item('XMP:PerspectiveFocalLength'))
+            px_per_mm = self.focal_plane_resolution_um()[0]
+            focal_length_mm = focal_length_px / px_per_mm
+        return focal_length_mm
