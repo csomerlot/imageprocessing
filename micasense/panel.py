@@ -32,6 +32,9 @@ import pyzbar.pyzbar as pyzbar
 from skimage import measure
 import matplotlib.pyplot as plt
 
+class PanelDetectionError(Exception):
+    pass
+
 class Panel(object):
 
     def __init__(self, img,panelCorners=None):
@@ -94,26 +97,39 @@ class Panel(object):
             reference panel region to find our panel region """
         if self.__panel_bounds is not None:
             return self.__panel_bounds
-        reference_panel_pts = np.asarray([[894, 469], [868, 232], [630, 258], [656, 496]], 
-                                         dtype=np.int32)
-        reference_qr_pts = np.asarray([[898, 748], [880, 567], [701, 584], [718, 762]], 
-                                      dtype=np.int32)
+        if not self.panel_detected():
+            raise PanelDetectionError()
+        # reference_panel_pts = np.asarray([[894, 469], [868, 232], [630, 258], [656, 496]], dtype=np.int32)
+        reference_panel_pts = np.asarray([[540, 316], [534, 508], [705, 511], [711, 320]], dtype=np.int32) 
+        # reference_qr_pts = np.asarray([[898, 748], [880, 567], [701, 584], [718, 762]], dtype=np.int32)
+        orig_reference_qr_pts = np.asarray([[821, 324], [819, 506], [996, 509], [999, 330]], dtype=np.int32)
         # a rotation may be necessary for *very* old first gen panels
-        #rotation = 1; reference_qr_pts = np.roll(measuredQrPts, rotation, axis=0) 
-
-        src = np.asarray([tuple(row) for row in reference_qr_pts[:3]], np.float32)
         dst = np.asarray([tuple(row) for row in self.qr_corners()[:3]], np.float32)
-        warp_matrix = cv2.getAffineTransform(src, dst)
+        
+        minStdDev = 99999
+        for r in range(4):
+            thisStdDev, panel_bounds = self.runAffine(reference_panel_pts, orig_reference_qr_pts, r, dst)
+            if thisStdDev < minStdDev:
+                minStdDev = thisStdDev
+                best_panel_bounds = panel_bounds
+        
+        for i, point in enumerate(best_panel_bounds):
+            if not self.__pt_in_image_bounds(point):
+                self.__panel_bounds = None
+        self.__panel_bounds = best_panel_bounds
+        return self.__panel_bounds
 
+    def runAffine(self, reference_panel_pts, orig_reference_qr_pts, r, dst):
+        reference_qr_pts = np.roll(orig_reference_qr_pts, r, axis=0) 
+        src = np.asarray([tuple(row) for row in reference_qr_pts[:3]], np.float32)
+        
+        warp_matrix = cv2.getAffineTransform(src, dst)
         pts = np.asarray([reference_panel_pts], 'int32')
         panel_bounds = cv2.convexHull(cv2.transform(pts, warp_matrix), clockwise=False)
         panel_bounds = np.squeeze(panel_bounds) # remove nested lists
-        for i, point in enumerate(panel_bounds):
-            if not self.__pt_in_image_bounds(point):
-                self.__panel_bounds = None
-        self.__panel_bounds = panel_bounds
-        return self.__panel_bounds
-
+        mean_value, stdev, num_pixels, saturated_count = self.region_stats(self.image.undistorted(self.image.raw()), panel_bounds)
+        return stdev, panel_bounds
+        
     def region_stats(self, img, region, sat_threshold=None):
         """Provide regional statistics for a image over a region
         Inputs: img is any image ndarray, region is a skimage shape
