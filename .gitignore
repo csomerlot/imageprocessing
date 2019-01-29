@@ -7,3 +7,5 @@ __pycache__
 Imagery
 Output
 *check.jpg
+*.jsn
+*.log
