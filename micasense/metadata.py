@@ -66,6 +66,20 @@ class Metadata(object):
                 index))
 
         return val
+        
+    def copy(self, outputFilename, items=None):
+        ''' Apply a metadata tag on a different file to the same as this item'''
+        if items is None:
+            items = self.exif.keys()
+        
+        with exiftool.ExifTool(self.exiftoolPath) as exift:
+            for item in items:
+                val = self.get_item(item)
+                if ":" in item: 
+                    item = item.split(":")[-1]
+                command = "-{0}={1}".format(item, val)
+                print(command)
+                exift.execute(bytes(command, 'utf-8'), bytes(outputFilename, 'utf-8'))
 
     def size(self, item):
         '''get the size (length) of a metadata item'''

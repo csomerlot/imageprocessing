@@ -11,6 +11,8 @@ import micasense.metadata as metadata
 import micasense.utils as msutils
 import micasense.panel as panel
 
+import exiftool
+
 def log(message):
     if type(message) not in [str]:
         message = json.dumps(message, sort_keys=True, indent=4, separators=(',', ': '))
@@ -60,15 +62,21 @@ def sortImageryByAlt(path, cutoffElev):
                             
     return data
 
-def printMeta(imageryPath):
-    print("\n",i)
-    meta = metadata.Metadata(imageryPath, exiftoolPath=os.environ['exiftoolpath'])
-    for k in sorted(meta.get_all().keys()):
-        print('{0}: {1}'.format(k, meta.get_item(k)))
+def printExif(filename, items=None):
+    print("\n",filename)
+    with exiftool.ExifTool(os.environ['exiftoolpath']) as exift:
+        exif = exift.get_metadata(filename)
+    
+    if items is None: items = exif.keys()
+    for k in items: 
+        try:
+            print("\t", k, exif[k])
+        except KeyError:
+            print("\t",k,"does not exist")
         
 def getPanelData(panelRoot, plot=False):
     panelNames = glob.glob(panelRoot)
-    # for i in panelNames: printMeta(i)
+    # for i in panelNames: printExif(i)
     panelCap = capture.Capture.from_filelist(panelNames) 
     
     if plot: panelCap.plot_panels(panelRoot[:-5].replace("\\","_")+"check.jpg")
@@ -78,18 +86,34 @@ def getPanelData(panelRoot, plot=False):
     return panel_irradiance
     
 def processImage(iset, sub, imagePath, imageRoot, band, radianceToReflectance):
-    '''Does 3 steps: converts raw image to radiance based on metadata, converts radiance to relfectance based on panel calibration, un-distorts based on lens correction'''
-    outnm = 'Output\\%04i_%s_%s_%s' % (band, iset, sub, imageRoot)
+    '''Does 4 steps: converts raw image to radiance based on metadata, converts radiance to relfectance based on panel calibration, un-distorts based on lens correction, and adds metadata to output'''
+    outnm = 'Output\\%04i_%s_%s_%s_radiance.tiff' % (band, iset, sub, imageRoot)
     img = image.Image(imagePath)
     outImg = img.undistorted(img.reflectance(radianceToReflectance))
     rows, cols = outImg.shape
     driver = gdal.GetDriverByName('GTiff')
-    outRaster = driver.Create(outnm +"_radiance.tiff", cols, rows, 1, gdal.GDT_Float32)
+    outRaster = driver.Create(outnm, cols, rows, 1, gdal.GDT_Float32)
 
     outband = outRaster.GetRasterBand(1)
     outband.WriteArray(outImg[:,:])
     outband.FlushCache()
     
+    tagsToCopy = [
+            "EXIF:GPSAltitude"]#,
+            # "EXIF:GPSAltitudeRef",
+            # "EXIF:GPSDOP",
+            # "EXIF:GPSLatitude",
+            # "EXIF:GPSLatitudeRef",
+            # "EXIF:GPSLongitude",
+            # "EXIF:GPSLongitudeRef",
+            # "EXIF:GPSVersionID"
+        # ]
+    print("Copying")
+    meta = metadata.Metadata(imagePath, exiftoolPath=os.environ['exiftoolpath'])
+    meta.copy(outnm,tagsToCopy)
+    
+    printExif(imagePath, tagsToCopy)
+    printExif(outnm, tagsToCopy)
 
     
 if __name__ == '__main__':
@@ -129,6 +153,7 @@ if __name__ == '__main__':
         for sub in data[iset]:
             if 'images' in data[iset][sub]:
                 for imageroot in data[iset][sub]['images']:
+                    # printExif(os.path.join('Imagery', iset, sub, imageroot.replace("*","1")))
                     imageTime = os.path.getctime(os.path.join('Imagery', iset, sub, imageroot.replace("*","1")))
                     panelTime = min(panelTimes.keys(), key=lambda x:abs(x-imageTime))
                     panelIrradiance = panelIrradiances[panelTimes[panelTime]]
