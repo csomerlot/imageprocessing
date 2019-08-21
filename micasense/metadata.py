@@ -136,7 +136,8 @@ class Metadata(object):
         return yaw, pitch, roll
     
     def dls_irradiance(self):
-        return float(self.get_item('XMP:SpectralIrradiance'))
+        try: return float(self.get_item('XMP:SpectralIrradiance'))
+        except TypeError: return None
     
     def capture_id(self):
         return self.get_item('XMP:CaptureId')
