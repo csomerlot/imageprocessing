@@ -79,7 +79,10 @@ def getPanelData(panelRoot, plot=False):
     # for i in panelNames: printExif(i)
     panelCap = capture.Capture.from_filelist(panelNames) 
     
-    if plot: panelCap.plot_panels(panelRoot[:-5].replace("\\","_")+"check.jpg")
+    if plot: 
+        checkFile = panelRoot[:-5].replace("\\","_")+"check.jpg"
+        log("\tsaved panel plot for checking to " +checkFile)
+        panelCap.plot_panels(checkFile)
     panel_reflectance_by_band = [0.67, 0.69, 0.68, 0.61, 0.67] #RedEdge band_index order
     panel_irradiance = panelCap.panel_irradiance(panel_reflectance_by_band)
     
@@ -129,15 +132,15 @@ if __name__ == '__main__':
             panelIrradiances = json.load(datfile)
     else:
         panelIrradiances = {}    
-        for iset in daqta:
+        for iset in data:
             for sub in data[iset]:
                 if 'panels' in data[iset][sub]:
                     
                     for imageroot in data[iset][sub]['panels']:
                         panelRoot = os.path.join('Imagery', iset, sub, imageroot)
-                        log(panelRoot)
+                        log("Finding irradiance from panel " + panelRoot)
                         try:
-                            panel_irradiance = getPanelData(panelRoot, False)
+                            panel_irradiance = getPanelData(panelRoot, True)
                             panel_time = int(round(os.path.getctime(panelRoot.replace("*","1"))))
                             panelIrradiances[panelRoot[:-6]] = panel_irradiance, panel_time
                         except panel.PanelDetectionError as err:
